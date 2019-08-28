@@ -7,6 +7,8 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -75,13 +77,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
             Uri uri = data.getData();
-            String[] projection = {MediaStore.Images.Media.DATA};
+            String[] projection = { MediaStore.Images.Media.DATA };
             Cursor actualisation = managedQuery(uri, projection, null, null, null);
             int actual_image_column_index = actualisation.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
             actualisation.moveToFirst();
             mInputFilePath = actualisation.getString(actual_image_column_index);
-            Toast.makeText(MainActivity.this,
-                    "Choose File:" + mInputFilePath, Toast.LENGTH_SHORT).show();
+            if (mInputFilePath == null) {
+                String[] idArr = DocumentsContract.getDocumentId(uri).split(":");
+                if (idArr.length == 2) {
+                    String type = idArr[0];
+                    String realDocId = idArr[1];
+
+                    if ("primary".equalsIgnoreCase(type)) {
+                        mInputFilePath = Environment.getExternalStorageDirectory() + "/" + realDocId;
+                    }
+                }
+            }
+            Toast.makeText(MainActivity.this, "Choose File:" + mInputFilePath, Toast.LENGTH_SHORT).show();
             mTextFilePath.setText(mInputFilePath);
         }
     }
@@ -103,8 +115,7 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.button_extract)
     public void onMButtonExtractClicked() {
         if (TextUtils.isEmpty(mInputFilePath)) {
-            Toast.makeText(MainActivity.this, "Please Select 7z File First!",
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "Please Select 7z File First!", Toast.LENGTH_SHORT).show();
             return;
         }
         doExtractFile();
@@ -114,8 +125,7 @@ public class MainActivity extends AppCompatActivity {
      * request for some read storage permission for android 6.0+
      */
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == REQUEST_READ_EXTERNAL_STORAGE) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 doExtractFile();
@@ -141,34 +151,34 @@ public class MainActivity extends AppCompatActivity {
         mProgressDialog = new ProgressDialog(this);
         mProgressDialog.show();
         new Thread() {
+
             @Override
             public void run() {
-                Z7Extractor.extractFile(mInputFilePath, mOutputPath,
-                        new IExtractCallback() {
-                            @Override
-                            public void onStart() {
-                            }
+                Z7Extractor.extractFile(mInputFilePath, mOutputPath, new IExtractCallback() {
 
-                            @Override
-                            public void onGetFileNum(int fileNum) {
-                            }
+                    @Override
+                    public void onStart() {
+                    }
 
-                            @Override
-                            public void onProgress(String name, long size) {
-                                EventBus.getDefault().post(new MessageEvent(MessageEvent.SHOW_MSG,
-                                        "name: " + name + "\nsize: " + size));
-                            }
+                    @Override
+                    public void onGetFileNum(int fileNum) {
+                    }
 
-                            @Override
-                            public void onError(int errorCode, String message) {
-                                EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
-                            }
+                    @Override
+                    public void onProgress(String name, long size) {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.SHOW_MSG, "name: " + name + "\nsize: " + size));
+                    }
 
-                            @Override
-                            public void onSucceed() {
-                                EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
-                            }
-                        });
+                    @Override
+                    public void onError(int errorCode, String message) {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
+                    }
+
+                    @Override
+                    public void onSucceed() {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
+                    }
+                });
             }
         }.start();
     }
@@ -181,34 +191,34 @@ public class MainActivity extends AppCompatActivity {
         mProgressDialog = new ProgressDialog(this);
         mProgressDialog.show();
         new Thread() {
+
             @Override
             public void run() {
-                Z7Extractor.extractAsset(getAssets(), "TestAsset.7z", mOutputPath,
-                        new IExtractCallback() {
-                            @Override
-                            public void onStart() {
-                            }
+                Z7Extractor.extractAsset(getAssets(), "TestAsset.7z", mOutputPath, new IExtractCallback() {
 
-                            @Override
-                            public void onGetFileNum(int fileNum) {
-                            }
+                    @Override
+                    public void onStart() {
+                    }
 
-                            @Override
-                            public void onProgress(String name, long size) {
-                                EventBus.getDefault().post(new MessageEvent(MessageEvent.SHOW_MSG,
-                                        "name: " + name + "\nsize: " + size));
-                            }
+                    @Override
+                    public void onGetFileNum(int fileNum) {
+                    }
 
-                            @Override
-                            public void onError(int errorCode, String message) {
-                                EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
-                            }
+                    @Override
+                    public void onProgress(String name, long size) {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.SHOW_MSG, "name: " + name + "\nsize: " + size));
+                    }
 
-                            @Override
-                            public void onSucceed() {
-                                EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
-                            }
-                        });
+                    @Override
+                    public void onError(int errorCode, String message) {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
+                    }
+
+                    @Override
+                    public void onSucceed() {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.DISMISS_MSG));
+                    }
+                });
             }
         }.start();
     }
